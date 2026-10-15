@@ -1,207 +1,163 @@
-# 💰 Personal Expense Tracker & Spending Insights
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
 
-A Python-based personal finance analysis tool that automatically categorizes bank transactions, analyzes monthly spending, identifies potential recurring expenses, and compares expenses against a predefined budget. It uses **Pandas, NumPy, Matplotlib, and Seaborn** to process transaction data and generate visual spending insights.
+# =====================================================================
+# 1. Define standard transaction schema & rule-based categorization
+# =====================================================================
 
-## 📌 Project Overview
-
-Managing personal expenses is essential for maintaining financial stability. This project simplifies expense tracking by processing bank transaction CSV files and converting raw transaction data into meaningful financial reports.
-
-The application normalizes transaction data, categorizes expenses using keyword-based rules, calculates monthly spending totals, analyzes category-wise spending, detects potential recurring transactions, and visualizes spending patterns.
-
-## ✨ Features
-
-- **CSV Data Import:** Loads transaction data from CSV files.
-- **Data Cleaning & Normalization:** Standardizes column names and converts dates and amounts into appropriate data types.
-- **Automatic Categorization:** Categorizes transactions into groceries, utilities, dining, transportation, entertainment, income, and other categories.
-- **Monthly Spending Analysis:** Calculates total expenses for each month.
-- **Budget Tracking:** Compares monthly expenses against a predefined budget and calculates the remaining budget or overspending.
-- **Category-Wise Analysis:** Calculates spending totals and percentage shares for each category.
-- **Recurring Expense Detection:** Identifies transactions with matching descriptions and amounts that occur more than once.
-- **Data Visualization:** Generates charts showing monthly spending trends and category-wise expense distribution.
-- **Sample Dataset:** Creates a demonstration CSV file to test the complete workflow.
-
-## 🛠️ Technologies Used
-
-- **Python** – Core programming language
-- **Pandas** – Data loading, cleaning, grouping, and analysis
-- **NumPy** – Numerical computing support
-- **Matplotlib** – Data visualization
-- **Seaborn** – Statistical charts and visual styling
-
-## 📂 Project Structure
-
-```text
-Personal-Expense-Tracker/
-│
-├── expense_tracker.py       # Main Python application
-├── sample_expenses.csv      # Generated sample transaction data
-├── README.md                # Project documentation
-└── requirements.txt         # Required Python libraries
-```
-
-*Note: Save your Python program as `expense_tracker.py`. The sample CSV is generated automatically when the program runs.*
-
-## ⚙️ Installation & Setup
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
-```
-
-Replace the URL with your actual GitHub repository URL.
-
-### 2. Navigate to the Project Directory
-
-```bash
-cd Personal-Expense-Tracker
-```
-
-### 3. Install the Required Libraries
-
-```bash
-pip install pandas numpy matplotlib seaborn
-```
-
-Alternatively, create a `requirements.txt` file containing:
-
-```text
-pandas
-numpy
-matplotlib
-seaborn
-```
-
-Then install the dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Run the Application
-
-```bash
-python expense_tracker.py
-```
-
-The application generates `sample_expenses.csv`, processes the transactions, displays spending summaries in the terminal, and opens charts for monthly spending and category distribution.
-
-## 📊 Sample Analysis
-
-The project uses sample transactions from January and February 2026.
-
-The following information is generated:
-
-**1. Monthly Spending Summary**
-- Total expenses for each month
-- Monthly budget
-- Remaining budget or overspending
-
-**2. Category Distribution**
-- Total amount spent in each category
-- Percentage contribution of each category to overall spending
-
-**3. Potential Recurring Expenses**
-- Transaction descriptions
-- Matching transaction amounts
-- Frequency of repeated transactions
-
-**4. Visual Reports**
-- Bar chart comparing monthly expenses with the budget
-- Pie chart displaying category-wise spending distribution
-
-## 💡 Example Budget Calculation
-
-Suppose the monthly budget is $500 and the total expenses are $400.
-
-- Monthly Budget: $500
-- Total Expenses: $400
-- Remaining Budget: $100
-- Budget Status: Within Budget
-
-If expenses exceed the budget, the report shows a negative budget variance, indicating overspending.
-
-## 🧠 How It Works
-
-1. **Load Data:** Reads transaction records from a CSV file using Pandas.
-2. **Normalize Columns:** Converts column names into a standardized format and maps common bank CSV fields to the required schema.
-3. **Clean Transactions:** Converts transaction dates and amounts and removes rows with invalid dates or amounts.
-4. **Categorize Transactions:** Matches transaction descriptions against predefined keyword rules.
-5. **Calculate Insights:** Groups expenses by month and category, calculates budget variance, and identifies repeated transactions.
-6. **Generate Visualizations:** Displays charts to help users understand their spending patterns.
-
-## 🔧 Customization
-
-### Change the Monthly Budget
-
-Update the budget value in the main program:
-
-```python
-generate_expense_insights(df_normalized, monthly_budget=500)
-```
-
-### Add New Category Keywords
-
-Modify the `DEFAULT_CATEGORIES` dictionary to include more merchants or transaction keywords:
-
-```python
 DEFAULT_CATEGORIES = {
-    "groceries": ["walmart", "kroger", "target"],
-    "utilities": ["electric", "water", "internet"],
-    "dining": ["restaurant", "cafe", "pizza"],
-    "income": ["salary", "paycheck"]
+    "groceries": ["walmart", "kroger", "target", "safeway", "whole foods"],
+    "utilities": ["electric", "water", "gas", "internet", "comcast", "verizon"],
+    "dining": ["starbucks", "mcdonalds", "subway", "restaurant", "cafe", "pizza"],
+    "transportation": ["uber", "lyft", "gas station", "shell", "chevron", "subway transit"],
+    "entertainment": ["netflix", "spotify", "hulu", "cinema", "disney"],
+    "income": ["salary", "paycheck", "direct deposit", "venmo cashout"]
 }
-```
 
-You can add additional categories and keywords to suit your transaction data.
+def categorize_transaction(description, category_rules=DEFAULT_CATEGORIES):
+    """Rule-based categorization based on keywords in the description."""
+    if not isinstance(description, str):
+        return "unassigned"
+    desc_lower = description.lower()
+    for category, keywords in category_rules.items():
+        for keyword in keywords:
+            if keyword in desc_lower:
+                return category
+    return "other"
 
-## 🚀 Future Enhancements
+# =====================================================================
+# 2. Data Loading & Normalization
+# =====================================================================
 
-- Interactive dashboards using Streamlit or Plotly
-- Support for Excel files and multiple bank statement formats
-- Improved transaction categorization using machine learning
-- Monthly and yearly financial reports
-- Income-versus-expense analysis
-- Savings goals and budget alerts
-- Exportable PDF reports
-- Improved recurring payment detection
-- Support for multiple currencies
+def load_and_normalize_expenses(csv_path, category_rules=DEFAULT_CATEGORIES):
+    """Loads, cleans, and normalizes bank CSV transactions to standard schema."""
+    try:
+        df = pd.read_csv(csv_path)
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
+        return None
 
-## ⚠️ Limitations
+    # Normalize columns to lowercase and strip whitespace
+    df.columns = df.columns.str.strip().str.lower()
 
-- Transaction categorization depends on predefined keywords and may misclassify unfamiliar descriptions.
-- The recurring expense detector identifies matching descriptions and amounts, but does not verify actual billing schedules.
-- The current analysis uses absolute transaction amounts for non-income categories, so refunds and transfers may be counted as expenses.
-- The application uses a manually configured budget and does not connect directly to bank accounts.
+    # Map dynamic input columns to standard schema:
+    # Required standard schema: date, description, amount, category, account
+    rename_map = {}
+    for col in df.columns:
+        if "date" in col:
+            rename_map[col] = "date"
+        elif "desc" in col or "merchant" in col or "details" in col:
+            rename_map[col] = "description"
+        elif "amt" in col or "amount" in col or "price" in col:
+            rename_map[col] = "amount"
+        elif "acc" in col or "card" in col:
+            rename_map[col] = "account"
 
-## 🔒 Privacy & Security
+    df = df.rename(columns=rename_map)
 
-This project processes CSV files locally and does not require bank account credentials or direct bank integration. Use sample or anonymized transaction data when testing, and avoid uploading personal financial information to a public repository.
+    # Fill missing standard columns if they don't exist
+    if "account" not in df.columns:
+        df["account"] = "default_account"
 
-## 🎓 Learning Outcomes
+    # Ensure critical columns exist
+    for col in ["date", "description", "amount"]:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column mapping for: '{col}' in CSV.")
 
-Through this project, developers can practice:
+    # Convert and clean types
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
+    df["description"] = df["description"].astype(str).str.strip()
 
-- Python programming and modular function design
-- Data preprocessing and cleaning
-- Pandas DataFrame operations
-- Rule-based classification
-- Financial data analysis
-- Data visualization
-- CSV file handling
-- Git and GitHub project documentation
+    # Remove incomplete entries
+    df = df.dropna(subset=["date", "amount"]).copy()
 
-## 👨‍💻 Author
+    # Categorize automatically
+    df["category"] = df["description"].apply(lambda d: categorize_transaction(d, category_rules))
 
-**Prajan Kumar M**
+    return df
 
-B.Tech Information Technology Student  
-Mahendra Engineering College, Namakkal, Tamil Nadu, India
+# =====================================================================
+# 3. Monthly Spending Insights & Report Generation
+# =====================================================================
 
-## 📄 License
+def generate_expense_insights(df, monthly_budget=2000):
+    """Calculates monthly totals, category shares, recurring expenses, and budget variance."""
+    df["year_month"] = df["date"].dt.to_period("M")
 
-This project is available for educational and learning purposes. You may add an MIT License if you want to permit broader reuse and modification under its terms.
+    # Separate spending (negative/positive values representing outflow vs income)
+    # Assuming negative numbers or explicitly categorized expenses are spending
+    expenses_df = df[df["category"] != "income"].copy()
+    expenses_df["amount_abs"] = expenses_df["amount"].abs()
 
----
+    print("=== Spend Summary by Month ===")
+    monthly_totals = expenses_df.groupby("year_month")["amount_abs"].sum().reset_index()
+    monthly_totals["budget"] = monthly_budget
+    monthly_totals["variance"] = monthly_totals["budget"] - monthly_totals["amount_abs"]
+    print(monthly_totals.to_string(index=False))
+    print("\n")
 
-⭐ If you find this project useful, consider giving the repository a star on GitHub.
+    print("=== Category Distribution ===")
+    category_share = expenses_df.groupby("category")["amount_abs"].sum().reset_index()
+    total_spend = category_share["amount_abs"].sum()
+    category_share["percentage_share"] = (category_share["amount_abs"] / total_spend * 100).round(2)
+    print(category_share.to_string(index=False))
+    print("\n")
+
+    # Simple heuristic to identify potential recurring transactions
+    print("=== Potential Recurring Expenses ===")
+    recurring = expenses_df.groupby(["description", "amount_abs"]).size().reset_index(name="frequency")
+    recurring = recurring[recurring["frequency"] > 1]
+    print(recurring.to_string(index=False))
+    print("\n")
+
+    # Visualization
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    # Convert year_month period to string format for plotting
+    monthly_totals["year_month_str"] = monthly_totals["year_month"].astype(str)
+
+    # Plot 1: Monthly Trend against Budget
+    sns.barplot(ax=axes[0], data=monthly_totals, x="year_month_str", y="amount_abs", hue="year_month_str", palette="Blues_d", legend=False)
+    axes[0].axhline(monthly_budget, color="red", linestyle="--", label=f"Budget Limit (${monthly_budget})")
+    axes[0].set_title("Monthly Expenses vs Budget")
+    axes[0].set_xlabel("Month")
+    axes[0].set_ylabel("Total Spend ($)")
+    axes[0].legend()
+
+    # Plot 2: Category Breakdown
+    axes[1].pie(category_share["amount_abs"], labels=category_share["category"], autopct="%1.1f%%", startangle=140, colors=sns.color_palette("pastel"))
+    axes[1].set_title("Spending Share by Category")
+
+    plt.tight_layout()
+    plt.show()
+
+# =====================================================================
+# 4. Generate Demo CSV and Run pipeline
+# =====================================================================
+
+demo_csv_content = """Transaction Date,Description,Amount,Account
+2026-01-02,Walmart grocery store,-152.50,Credit Card
+2026-01-05,Netflix subscription,-15.99,Credit Card
+2026-01-10,Salary Paycheck,2500.00,Checking
+2026-01-15,Starbucks Coffee,-6.50,Credit Card
+2026-01-20,City Electric Utility,-85.00,Checking Account
+2026-01-22,Shell Gas Station,-45.00,Credit Card
+2026-02-02,Walmart grocery store,-160.00,Credit Card
+2026-02-05,Netflix subscription,-15.99,Credit Card
+2026-02-12,Salary Paycheck,2500.00,Checking
+2026-02-18,McDonalds,-12.40,Credit Card
+2026-02-25,Comcast Internet,-79.99,Checking Account
+"""
+
+with open("sample_expenses.csv", "w") as f:
+    f.write(demo_csv_content)
+
+print("Generated sample_expenses.csv successfully! Starting processing pipeline...\n")
+df_normalized = load_and_normalize_expenses("sample_expenses.csv")
+if df_normalized is not None:
+    generate_expense_insights(df_normalized, monthly_budget=500)
